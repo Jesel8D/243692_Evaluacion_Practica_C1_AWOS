@@ -1,20 +1,9 @@
--- Crea un usuario específico para la aplicación con permisos limitados
+-- Aquí solo definimos que puede ver.
 
-DO
-$do$
-BEGIN
-   IF NOT EXISTS (
-      SELECT FROM pg_catalog.pg_roles
-      WHERE  rolname = 'app_user') THEN
-CREATE ROLE app_user WITH LOGIN PASSWORD 'app_password_123';
-END IF;
-END
-$do$;
-
--- Revocar permisos sobre las tablas base (Seguridad)
+-- 1. Seguridad: Revocar permisos sobre las tablas base (para que no pueda ver datos crudos)
 REVOKE ALL ON students, teachers, courses, groups, enrollments, grades, attendance FROM app_user;
 
--- Otorgar permisos SOLO de lectura sobre las vistas
+-- 2. Accesibilidad: Otorgar permisos SOLO de lectura sobre las vistas
 GRANT SELECT ON vw_students_at_risk TO app_user;
 GRANT SELECT ON vw_teacher_load TO app_user;
 GRANT SELECT ON vw_course_performance TO app_user;
