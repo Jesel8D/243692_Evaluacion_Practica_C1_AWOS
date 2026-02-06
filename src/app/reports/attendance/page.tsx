@@ -17,7 +17,7 @@ export default async function AttendancePage() {
                 <p className="text-gray-500 mt-1">Monitoreo de asistencia por clase y profesor.</p>
             </header>
 
-            {/* SECCIÓN KPI */}
+            {/* Seccion KPI */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-5 bg-white border border-gray-200 rounded-lg shadow-sm">
                     <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Promedio Global</p>
