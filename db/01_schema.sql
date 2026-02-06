@@ -14,6 +14,12 @@ CREATE TABLE students (
                           enrollment_year INT NOT NULL
 );
 
+CREATE TABLE teachers (
+                          id SERIAL PRIMARY KEY,
+                          name VARCHAR(100) NOT NULL,
+                          email VARCHAR(100) UNIQUE NOT NULL
+);
+
 CREATE TABLE courses (
                          id SERIAL PRIMARY KEY,
                          code VARCHAR(20) UNIQUE NOT NULL,
@@ -24,6 +30,7 @@ CREATE TABLE courses (
 CREATE TABLE groups (
                         id SERIAL PRIMARY KEY,
                         course_id INT REFERENCES courses(id),
+                        teacher_id INT REFERENCES teachers(id), -- Agregado según rúbrica
                         term VARCHAR(20) NOT NULL
 );
 
