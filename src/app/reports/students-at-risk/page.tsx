@@ -4,7 +4,7 @@ import { getStudentsAtRisk } from '@/lib/queries';
 import { Search } from '@/components/ui/search';
 import { Pagination } from '@/components/ui/pagination';
 
-// Definimos el tipo para las props de la página
+// Definimos el tipo para las props de la pagina
 type Props = {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
@@ -13,17 +13,17 @@ export default async function StudentsAtRiskPage(props: Props) {
     // Esperamos la promesa antes de usarla
     const searchParams = await props.searchParams;
 
-    //Validar y limpiar parámetros
+    //Validar y limpiar parametros
     const params = FilterSchema.parse(searchParams);
 
     // Obtener datos reales desde PostgreSQL
-    //Ponemos un try/catch aquí para que la página no explote si la BD falla
+    //Ponemos aca un try/catch para que la pagina no explote si la BD falla
     let students = [];
     try {
         students = await getStudentsAtRisk(params.search, params.page, params.limit);
     } catch (e) {
         console.error("Error cargando alumnos:", e);
-        // Si explota la BD, students se queda vacío []
+        // Si explota la BD, entonces students se quedara vacío []
     }
 
     // Calcular KPIs
