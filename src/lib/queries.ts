@@ -13,57 +13,88 @@ async function query(text: string, params?: any[]) {
     }
 }
 
-/* 1. VIEW: vw_students_at_risk*/
+export async function getAttendanceDashboard() {
+    const [kpiRes, listRes] = await Promise.all([
+        query(`SELECT * FROM vw_kpi_attendance`),
+        query(`SELECT * FROM vw_attendance_by_group ORDER BY group_attendance_pct ASC LIMIT 50`)
+    ]);
+
+    return {
+        kpi: kpiRes.rows[0],
+        groups: listRes.rows
+    };
+}
+
 export async function getStudentsAtRisk(
     search?: string,
     page: number = 1,
     limit: number = 10
 ) {
     const offset = (page - 1) * limit;
-    let sql = `SELECT * FROM vw_students_at_risk`;
     const params: any[] = [];
+    let whereClause = '';
 
     if (search) {
-        sql += ` WHERE student_name ILIKE $1 OR email ILIKE $1`;
+        whereClause = ` WHERE student_name ILIKE $1 OR email ILIKE $1`;
         params.push(`%${search}%`);
     }
 
-    const pLimit = params.length + 1;
-    const pOffset = params.length + 2;
+    const sqlData = `
+        SELECT * FROM vw_students_at_risk
+        ${whereClause}
+        ORDER BY avg_grade ASC
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `;
 
-    sql += ` ORDER BY avg_grade ASC LIMIT $${pLimit} OFFSET $${pOffset}`;
-    params.push(limit, offset);
+    const sqlStats = `
+        SELECT 
+            COUNT(*) as total_count,
+            COALESCE(AVG(avg_grade), 0)::NUMERIC(4,1) as avg_grade_global
+        FROM vw_students_at_risk
+        ${whereClause}
+    `;
 
-    const res = await query(sql, params);
-    return res.rows;
+    const [dataRes, statsRes] = await Promise.all([
+        query(sqlData, [...params, limit, offset]),
+        query(sqlStats, params)
+    ]);
+
+    return {
+        students: dataRes.rows,
+        meta: {
+            total: Number(statsRes.rows[0]?.total_count || 0),
+            avgGrade: statsRes.rows[0]?.avg_grade_global || 0,
+            page,
+            limit
+        }
+    };
 }
 
-/* 2. VIEW: vw_teacher_load */
 export async function getTeacherLoad(
     search?: string,
     page: number = 1,
     limit: number = 10
 ) {
     const offset = (page - 1) * limit;
-    let sql = `SELECT * FROM vw_teacher_load`;
     const params: any[] = [];
+    let whereClause = '';
 
     if (search) {
-        sql += ` WHERE teacher_name ILIKE $1`;
+        whereClause = ` WHERE teacher_name ILIKE $1`;
         params.push(`%${search}%`);
     }
 
-    const pLimit = params.length + 1;
-    const pOffset = params.length + 2;
+    const sql = `
+        SELECT * FROM vw_teacher_load
+        ${whereClause}
+        ORDER BY total_students DESC 
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `;
 
-    sql += ` ORDER BY total_students DESC LIMIT $${pLimit} OFFSET $${pOffset}`;
-    params.push(limit, offset);
-
-    const res = await query(sql, params);
+    const res = await query(sql, [...params, limit, offset]);
     return res.rows;
 }
 
-/* 3. VIEW: vw_course_performance */
 export async function getCoursePerformance(term?: string) {
     let sql = `SELECT * FROM vw_course_performance`;
     const params: any[] = [];
@@ -79,18 +110,6 @@ export async function getCoursePerformance(term?: string) {
     return res.rows;
 }
 
-/* 4. VIEW: vw_attendance_by_group */
-export async function getAttendanceByGroup() {
-    const sql = `
-        SELECT * FROM vw_attendance_by_group
-        ORDER BY group_attendance_pct ASC
-            LIMIT 50
-    `;
-    const res = await query(sql);
-    return res.rows;
-}
-
-/*5. VIEW: vw_rank_students*/
 export async function getStudentRank(program?: string) {
     let sql = `SELECT * FROM vw_rank_students`;
     const params: any[] = [];
@@ -106,25 +125,12 @@ export async function getStudentRank(program?: string) {
     return res.rows;
 }
 
-
-// Periodos disponibles (Course Performance)
 export async function getTerms() {
-    const sql = `
-        SELECT DISTINCT term
-        FROM vw_course_performance
-        ORDER BY term DESC
-    `;
-    const res = await query(sql);
+    const res = await query(`SELECT DISTINCT term FROM vw_course_performance ORDER BY term DESC`);
     return res.rows;
 }
 
-// Programas disponibles (Student Ranking)
 export async function getPrograms() {
-    const sql = `
-        SELECT DISTINCT program
-        FROM vw_rank_students
-        ORDER BY program ASC
-    `;
-    const res = await query(sql);
+    const res = await query(`SELECT DISTINCT program FROM vw_rank_students ORDER BY program ASC`);
     return res.rows;
 }

@@ -118,3 +118,38 @@ FROM students s
          JOIN enrollments e ON s.id = e.student_id
          JOIN grades gr ON e.id = gr.enrollment_id
 GROUP BY s.id, s.name, s.program, s.enrollment_year;
+
+
+-- ==============================================================================
+-- 6. Vista: vw_kpi_attendance
+-- Descripcion: Resumen ejecutivo de asistencia
+-- ==============================================================================
+CREATE OR REPLACE VIEW vw_kpi_attendance AS
+SELECT
+    ROUND(AVG(group_attendance_pct), 1) as global_average,
+    COUNT(*) FILTER (WHERE group_attendance_pct < 75) as risk_groups_count,
+    COUNT(*) as total_groups
+FROM vw_attendance_by_group;
+
+-- ==============================================================================
+-- 7. Vista: vw_kpi_students_risk_summary
+-- Descripcion: Resumen global de estudiantes en riesgo
+-- ==============================================================================
+CREATE OR REPLACE VIEW vw_kpi_students_risk_summary AS
+SELECT
+    COUNT(*) as total_risk_students,
+    COALESCE(ROUND(AVG(avg_grade), 1), 0) as risk_avg_grade
+FROM vw_students_at_risk;
+
+-- ==============================================================================
+-- 8. Vista: vw_kpi_course_overview
+-- Descripcion: Totales para Course Performance
+-- ==============================================================================
+CREATE OR REPLACE VIEW vw_kpi_course_overview AS
+SELECT
+    term,
+    COUNT(*) as total_courses,
+    SUM(failed_count) as total_failed_students,
+    ROUND(AVG(average_grade), 1) as term_average
+FROM vw_course_performance
+GROUP BY term;

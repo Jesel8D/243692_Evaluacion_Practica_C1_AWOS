@@ -4,33 +4,15 @@ import { getStudentsAtRisk } from '@/lib/queries';
 import { Search } from '@/components/ui/search';
 import { Pagination } from '@/components/ui/pagination';
 
-// Definimos el tipo para las props de la pagina
 type Props = {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 export default async function StudentsAtRiskPage(props: Props) {
-    // Esperamos la promesa antes de usarla
     const searchParams = await props.searchParams;
-
-    //Validar y limpiar parametros
     const params = FilterSchema.parse(searchParams);
 
-    // Obtener datos reales desde PostgreSQL
-    //Ponemos aca un try/catch para que la pagina no explote si la BD falla
-    let students = [];
-    try {
-        students = await getStudentsAtRisk(params.search, params.page, params.limit);
-    } catch (e) {
-        console.error("Error cargando alumnos:", e);
-        // Si explota la BD, entonces students se quedara vacío []
-    }
-
-    // Calcular KPIs
-    const riskCount = students.length;
-    const avgRiskGrade = riskCount > 0
-        ? (students.reduce((acc: any, curr: any) => acc + Number(curr.avg_grade || 0), 0) / riskCount).toFixed(1)
-        : "0";
+    const { students, meta } = await getStudentsAtRisk(params.search, params.page, params.limit);
 
     return (
         <div className="p-6 space-y-6">
@@ -40,8 +22,8 @@ export default async function StudentsAtRiskPage(props: Props) {
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <KpiCard title="Alumnos Listados" value={riskCount} description={`Encontrados en página ${params.page}`} />
-                <KpiCard title="Promedio del Grupo" value={avgRiskGrade} description="Promedio general de estos alumnos" />
+                <KpiCard title="Alumnos Listados" value={meta.total} description={`Encontrados con filtro: "${params.search || 'Todos'}"`} />
+                <KpiCard title="Promedio del Grupo" value={meta.avgGrade} description="Promedio general de estos alumnos" />
             </div>
 
             <div className="flex gap-2">
@@ -62,7 +44,7 @@ export default async function StudentsAtRiskPage(props: Props) {
                     {students.length === 0 ? (
                         <tr>
                             <td colSpan={4} className="p-8 text-center text-gray-500">
-                                {riskCount === 0 ? "No hay alumnos o error de conexión." : "Cargando..."}
+                                No se encontraron alumnos.
                             </td>
                         </tr>
                     ) : (
@@ -89,7 +71,7 @@ export default async function StudentsAtRiskPage(props: Props) {
             <div className="flex justify-end">
                 <Pagination
                     page={params.page}
-                    hasNextPage={students.length === params.limit}
+                    hasNextPage={params.page * params.limit < meta.total}
                     isFirstPage={params.page === 1}
                 />
             </div>

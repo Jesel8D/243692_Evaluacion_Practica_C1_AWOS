@@ -1,14 +1,7 @@
-import { getAttendanceByGroup } from '@/lib/queries';
+import { getAttendanceDashboard } from '@/lib/queries';
 
 export default async function AttendancePage() {
-    const groups = await getAttendanceByGroup();
-
-    // Lógica simple para el KPI
-    const totalAvg = groups.length > 0
-        ? (groups.reduce((acc: number, curr: any) => acc + Number(curr.group_attendance_pct), 0) / groups.length).toFixed(1)
-        : 0;
-
-    const lowAttendanceCount = groups.filter((g: any) => Number(g.group_attendance_pct) < 75).length;
+    const { kpi, groups } = await getAttendanceDashboard();
 
     return (
         <div className="p-6 space-y-6">
@@ -17,29 +10,27 @@ export default async function AttendancePage() {
                 <p className="text-gray-500 mt-1">Monitoreo de asistencia por clase y profesor.</p>
             </header>
 
-            {/* Seccion KPI */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-5 bg-white border border-gray-200 rounded-lg shadow-sm">
                     <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Promedio Global</p>
-                    <p className={`text-3xl font-bold mt-2 ${Number(totalAvg) < 80 ? 'text-orange-600' : 'text-gray-900'}`}>
-                        {totalAvg}%
+                    <p className={`text-3xl font-bold mt-2 ${Number(kpi.global_average) < 80 ? 'text-orange-600' : 'text-gray-900'}`}>
+                        {kpi.global_average}%
                     </p>
                 </div>
                 <div className="p-5 bg-white border border-gray-200 rounded-lg shadow-sm">
                     <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Grupos en Riesgo (&lt;75%)</p>
-                    <p className={`text-3xl font-bold mt-2 ${lowAttendanceCount > 0 ? 'text-red-700' : 'text-gray-400'}`}>
-                        {lowAttendanceCount}
+                    <p className={`text-3xl font-bold mt-2 ${Number(kpi.risk_groups_count) > 0 ? 'text-red-700' : 'text-gray-400'}`}>
+                        {kpi.risk_groups_count}
                     </p>
                 </div>
                 <div className="p-5 bg-white border border-gray-200 rounded-lg shadow-sm">
                     <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Grupos Activos</p>
                     <p className="text-3xl font-bold mt-2 text-gray-900">
-                        {groups.length}
+                        {kpi.total_groups}
                     </p>
                 </div>
             </div>
 
-            {/* Tabla de Reporte */}
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-semibold tracking-wider">
